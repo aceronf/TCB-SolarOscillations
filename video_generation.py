@@ -16,7 +16,7 @@ import os
 import shutil
 from PIL import Image
 
-from evolution import plot_timeseries, plot_inverted_psd, generate_colormap
+from evolution import plot_timeseries, plot_psd, generate_colormap
 
 def create_gif(frame_dir, anim_duration, output_path):
 
@@ -37,8 +37,9 @@ def create_gif(frame_dir, anim_duration, output_path):
     #cool_animation = FuncAnimation(fig, update, frames=range(num_frames))
 
 
-def generate_frames(freqs, powers, time, intensity, grid, frame_step, frame_dir):
+def generate_frames(freqs_path, powers_paths, time, intensity, grid, frame_step, frame_dir):
 
+    print("hello")
     if os.path.exists(frame_dir):
         shutil.rmtree(frame_dir)
     os.makedirs(frame_dir)
@@ -51,10 +52,10 @@ def generate_frames(freqs, powers, time, intensity, grid, frame_step, frame_dir)
     # Create the figure and define gridspec
     fig = plt.figure(figsize=(28, 16))
     gs = GridSpec(2, 2, width_ratios=[2.5, 1], height_ratios=[1, 3], figure=fig, wspace=0.2)
-    
+    print("got1")
     # Colormap subplot (bottom-left)
     cmap_ax = fig.add_subplot(gs[1, 0])
-    generate_colormap(grid, powers, cmap_ax, fig, show=False, cbar=False)
+    generate_colormap(grid, powers_paths, cmap_ax, fig, show=False, cbar=False)
     # Timeseries subplot (top-left)
     tseries_ax = fig.add_subplot(gs[0, 0], sharex=cmap_ax)
     plot_timeseries(time, intensity, tseries_ax, fig, show=False, xlim=time.max())
@@ -63,20 +64,19 @@ def generate_frames(freqs, powers, time, intensity, grid, frame_step, frame_dir)
     psd_ax = fig.add_subplot(gs[:, 1])
 
     fig.tight_layout()
-
+    
+    freqs = np.load(freqs_path)
+    print("got2")
     # Function to update the PSD for each frame
     def update(frame):
         # Clear the axis
         psd_ax.clear()
 
-        # Compute the PSD for this window
-        power = powers[frame, :]
-
         cmapline = tseries_ax.axvline(x=time[index_jump*frame].to(u.year).value, color='black', linestyle='--', linewidth=3)
         tseriesline = cmap_ax.axvline(x=time[index_jump*frame].to(u.year).value, color='black', linestyle='--', linewidth=3)
         
         # Plot the updated PSD
-        plot_inverted_psd(freqs, power, axis=psd_ax, figure=fig, show=False)
+        plot_psd(freqs, powers_paths[frame], axis=psd_ax, figure=fig, show=False, invert_axis=True)
         
         # Save each frame as an image
         output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}.png")  # Save the frame with a 4-digit number
@@ -88,7 +88,7 @@ def generate_frames(freqs, powers, time, intensity, grid, frame_step, frame_dir)
 
         plt.close()
 
-    num_frames = len(powers)    
+    num_frames = len(powers_paths)    
     for frame in range(num_frames):
         update(frame) 
     

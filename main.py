@@ -24,8 +24,8 @@ from video_generation import generate_frames, create_gif
 original_file = "virgo_missionlong_nanmeanr+g.dat"
 corrected_file = "virgo_missionlong_nanmeanr+g_fillednans.dat"
 
-window_big = 20*u.day
-window_small = 20*u.day
+window = 20*u.day
+
 
 anim_duration = 30*u.s
 
@@ -45,22 +45,33 @@ if __name__ == "__main__":
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
+
+    ### Directory for saving computed arrays in .dat format is created:
+    array_dir = "arrays"
+    if os.path.exists(array_dir):
+        shutil.rmtree(array_dir)
+    os.makedirs(array_dir)
     
     ################################################################################################################
-    ### The full datased is subsampled:
-    freqs, powers, grid = subsample_dataset(time, intensity, window_big)
+    ### The full dataset is subsampled:
+    freqs_path, powers_paths, grid = subsample_dataset(time, intensity, window, 
+                                            os.path.join(array_dir,f"subsample_{window.value}"))
     
     # A colormap with the evolution of modes with time is created:
     fig1, ax1 = plt.subplots(figsize=(15, 8))
-    generate_colormap(grid, powers, ax1, fig1, os.path.join(output_dir,"evolution_colormap"), False, "png", cbar=False)
+    generate_colormap(grid, powers_paths, ax1, fig1, os.path.join(output_dir,"evolution_colormap"), False, "png", cbar=True)
 
     # A PSD computed with the full dataset is produced:
-    total_freq, total_power = compute_PSD(time[-1000000:], intensity[-1000000:], min_freq=1e-2*u.mHz)
-    fig2, ax2 = plt.subplots(figsize=(15, 8))
-    plot_psd(total_freq, total_power, ax2, fig2, os.path.join(output_dir,"total_psd"), False, "pdf")
+    """
+    total_freq_path, total_power_path = compute_PSD(time[-10000:], intensity[-10000:], min_freq=1e-2*u.mHz, 
+                                                    output_path=os.path.join(array_dir,"total"), 
+                                                    method="cython")
     
+    fig2, ax2 = plt.subplots(figsize=(15, 8))
+    plot_psd(total_freq_path, total_power_path, ax2, fig2, os.path.join(output_dir,"total_psd"), False, "pdf")
+    """
     # Gif is generated:
-    generate_frames(freqs, powers, time, intensity, grid, window_big, os.path.join(output_dir,"frames_gif"))
+    generate_frames(freqs_path, powers_paths, time, intensity, grid, window, os.path.join(output_dir,"frames_gif"))
     
     create_gif(os.path.join(output_dir,"frames_gif"), 20, os.path.join(output_dir,"cool_gif.gif"))
     

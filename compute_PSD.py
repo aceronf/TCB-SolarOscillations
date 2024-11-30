@@ -11,7 +11,7 @@ from astropy import units as u
 import numpy as np
 
 
-def compute_PSD(t_values, intensities, frequencies=None, min_freq=None):
+def compute_PSD(t_values, intensities, output_path, frequencies=None, min_freq=None, max_freq=None, method="auto"):
     """
     Computes the Lomb-Scargle Periodogram (LSP) of a certain dataset and returns 
     the frequencies and the power values of the Fourier transform of the 
@@ -23,12 +23,11 @@ def compute_PSD(t_values, intensities, frequencies=None, min_freq=None):
         Time values for the measurements (astropy quantities).
     intensities : np.array
         Measurements at each time (astropy quantities).
+    output_path : np.array
+        .dat file where the frequencies and power values will be stored.
     frequencies : np.array
         Frequencies at which the LSP will be evaluated.
-        
-    Returns
-    -------
-    Tuple with the frequency values and power values, both astropy quantities.
+
 
     """
     # Normalized intensity values:
@@ -42,18 +41,37 @@ def compute_PSD(t_values, intensities, frequencies=None, min_freq=None):
     data_length = len(intensities)*time_step
     if min_freq is None:
         min_freq = (1/data_length).to(u.Hz) 
+        
+    if max_freq is None:
+        max_freq = nyquist_frequency
     
     # LSP is computed
     LSP = LombScargle(t_values, intensities, normalization="psd")
 
     if frequencies is None:
         frequency, power = LSP.autopower(minimum_frequency=min_freq, 
-                                        maximum_frequency=nyquist_frequency, 
-                                        normalization="psd")
-        return frequency.to(u.mHz), power.to(u.dimensionless_unscaled)
-    
+                                        maximum_frequency=max_freq, 
+                                        normalization="psd",
+                                        method=method)
+
+        output_path_freq = output_path + "_frequencies.npy"
+        output_path_power = output_path + "_power.npy"
+
+        np.save(output_path_freq, frequency.to(u.mHz).value)
+        np.save(output_path_power, power.to(u.dimensionless_unscaled).value)
+
+        return output_path_freq, output_path_power
+
+
+
     else:
         power = LSP.power(frequency=frequencies, 
-                        normalization="psd")
+                        normalization="psd",
+                        method=method)
         
-        return power.to(u.dimensionless_unscaled)
+        output_path_power = output_path + "_power.npy"
+        
+        np.save(output_path_power, power.to(u.dimensionless_unscaled).value)
+
+        return output_path_power
+    
