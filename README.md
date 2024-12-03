@@ -1,2 +1,2 @@
 # TCB-SolarOscillations
-Técnicas COmputacionales Básicas - Solar Oscillations Project
+Técnicas Computacionales Básicas - Solar Oscillations Project
