@@ -31,7 +31,7 @@ import shutil
 from compute_PSD import compute_PSD, plot_psd
 import resolution as rsl
 import evolution as evl
-from video_generation import generate_frames, create_gif, create_video
+from video_generation import create_gif, create_video
 from audio_generation import sun_sound
 
 ############################ LaTeX rendering ##############################
@@ -64,7 +64,7 @@ corrected_file = "virgo_missionlong_nanmeanr+g_fillednans.dat"
 
 ############################ Code settings ##############################
 window = 20*u.day # Window for sampling the full dataset 
-windows = np.arange(10,1001,90)*u.day # Increasingly long windows to check frequency resolution
+windows = np.arange(10,10001,90)*u.day # Increasingly long windows to check frequency resolution
 anim_duration = 25*u.s # Length of the animation showing the evolution of the PSD
 
 ################################################################################################################
@@ -94,6 +94,11 @@ if __name__ == "__main__":
               audio_length=anim_duration.to(u.s).value, sample_rate=44100)
     
     ########################################## EVOLUTION ###################################################
+
+    # Plot of the full timeseries:
+    fig1, ax1 = plt.subplots(figsize=(20, 8))
+    evl.plot_timeseries(time, intensity, ax1, fig1, os.path.join(output_dir,"timeseries"), False, "pdf", time[-1])
+
     # A PSD computed with the full dataset is produced:
     total_freq, total_power = compute_PSD(time, intensity, min_freq=1e-3*u.mHz, method="fft")
     fig2, ax2 = plt.subplots(figsize=(15, 8))
@@ -101,15 +106,15 @@ if __name__ == "__main__":
              psd_lims = (1e-4*cds.ppm, 1e6*cds.ppm))
     
     # The full datased is subsampled:
-    freqs, psds, grid = evl.subsample_dataset(time, intensity, window)
-
+    freqs, psds, grid = evl.subsample_dataset_constant(time, intensity, window)
+    
     # A colormap with the evolution of modes with time is created:
-    fig1, ax1 = plt.subplots(figsize=(15, 8))
-    evl.generate_colormap(grid, psds, ax1, fig1, os.path.join(output_dir,"evolution_colormap"), False, "png", cbar=True)
+    fig3, ax3 = plt.subplots(figsize=(15, 8))
+    evl.generate_colormap(grid, psds, ax3, fig3, os.path.join(output_dir,"evolution_colormap"), False, "png", cbar=True, secondary_axis=True)
     
     # The frames for the animation are generated:
     frames_dir = os.path.join(output_dir,"frames_evolution")
-    generate_frames(freqs, psds, time, intensity, grid, window, frames_dir)
+    evl.generate_frames_evolution(freqs, psds, time, intensity, grid, window, frames_dir)
 
     # A gif is created from the frames generated before:
     create_gif(frames_dir, anim_duration, os.path.join(output_dir,"cool_gif.gif"))
@@ -126,23 +131,25 @@ if __name__ == "__main__":
     del freqs, psds, grid, total_freq, total_power
     
     # The PSD is obtained for windows of increasing length
-    freqs, psds, df = rsl.subsample_dataset(time, intensity, windows)
+    freqs, psds, df = rsl.subsample_dataset_variable(time, intensity, windows)
 
     # Plot each PSD in a small range centered in the p modes and save the frames to frames_resolution
-    fig3, ax3 = plt.subplots(figsize=(15, 8))
-    rsl.plot_resolutions(freqs, psds, windows, ax3, fig3, output_path=os.path.join(output_dir, "resolutions_general"), im_format="pdf")
+    fig4, ax4 = plt.subplots(figsize=(15, 8))
+    rsl.plot_resolutions(freqs, psds, windows, ax4, fig4, output_path=os.path.join(output_dir, "resolutions_general"), im_format="pdf")
 
-    fig4, ax4 = plt.subplots(figsize=(13, 10))
-    rsl.plot_resolutions(freqs, psds, windows, ax4, fig4, output_path=os.path.join(output_dir, "resolutions_modes"), im_format="pdf", 
+    fig5, ax5 = plt.subplots(figsize=(13, 10))
+    rsl.plot_resolutions(freqs, psds, windows, ax5, fig5, output_path=os.path.join(output_dir, "resolutions_modes"), im_format="pdf", 
                    freq_lims=(2.5*u.mHz, 3.5*u.mHz), axis_log=False, psd_lims=(0*cds.ppm**2/u.mHz, 0.2e5*cds.ppm**2/u.mHz),
                    linewidth=1.5)
     
     # The frames for the animation are generated:
     frames_dir = os.path.join(output_dir,"frames_resolution")
-    rsl.generate_frames(freqs, psds, windows, df, frames_dir)
+    rsl.generate_frames_resolution(freqs, psds, windows, df, frames_dir)
 
     # A gif is created using the frames:
     anim_resolution_duration = len(freqs)*u.s/5
     create_gif(frames_dir, anim_resolution_duration, os.path.join(output_dir,"resolution.gif"))
 
-    # Plot with the f resolution as a function of the length of dtaset
+    # Plot with the f resolution as a function of the length of dataset
+    fig6, ax6 = plt.subplots(figsize=(13, 10))
+    rsl.plot_df_dt(windows, df, ax5, fig5, output_path=os.path.join(output_dir, "dT_df"), im_format="pdf")
