@@ -47,7 +47,7 @@ plt.rcParams.update({
 
 ################################################################################################################
 ################################################################################################################
-def subsample_dataset(t_values, intensities, windows):
+def subsample_dataset_variable(t_values, intensities, windows):
     """
     Calculates the PSD in different windows of increasing length using
     a Discrete Fourier Transform.
@@ -133,7 +133,7 @@ def plot_resolutions(freq_list, psd_list, windows, axis, figure, freq_lims=(1e-2
         PSD limits in the plot. By default None, in which case default values are calculated.
 
     output_path : str, optional
-        Path of the output figure. By default None, meaning no figure is saved.
+        Name of the output figure. By default None, meaning no figure is saved. No extension included
 
     im_format : str, optional
         Format of the output figure, by default "pdf".
@@ -156,12 +156,57 @@ def plot_resolutions(freq_list, psd_list, windows, axis, figure, freq_lims=(1e-2
     axis.legend(fontsize=24, loc="best", frameon=False)
 
     if output_path is not None:
-        figure.savefig(output_path, format=im_format, bbox_inches='tight')
-
+        figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight')
 
 ################################################################################################################
 ################################################################################################################
-def generate_frames(freqs, psds, windows, df, frame_dir):
+def plot_df_dt(windows, delta_freq, axis, figure, output_path=None, im_format="pdf", color="blue"):
+    """
+    Plots the frequency resolution vs the window length in which the PSD is calculated.
+
+    Parameters
+    ----------
+    windows : np.array
+        Lengths of the windows in which the PSD is computed (astropy quentities).
+
+    delta_freq : np.array
+        Frequency step in each window.
+
+    axis : matplotlib axes object
+        Axes object where the plot will be made.
+
+    figure : matplotlib figure object
+            Figure object where the plot will be made.
+
+    output_path : str, optional
+        Name of the output figure. By default None, meaning no figure is saved. No extension included
+
+    im_format : str, optional
+        Format of the output figure, by default "pdf".
+
+    color : str, optional
+        Color of the data points inside the plot_, by default "blue".
+    """
+
+    axis.plot([w.to(u.day).value for w in windows], 
+              [f.to(u.Hz).value for f in delta_freq], 
+              color=color,
+              marker="o", markersize=15,
+              )
+
+    axis.set_xlabel(r'$\Delta T$ [day]', fontsize=30)
+    axis.set_ylabel(r'$\Delta f$ [$\unit{\hertz}$]', fontsize=30)
+
+    axis.set_yscale("log")
+
+    axis.tick_params(axis='both', which='major', labelsize=24)
+    axis.yaxis.get_offset_text().set_fontsize(20)  # Adjust as needed
+    if output_path is not None:
+        figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight')
+
+################################################################################################################
+################################################################################################################
+def generate_frames_resolution(freqs, psds, windows, df, frame_dir):
     """
     Generates and saves in a directory frames of the PSD at different window lengths, which will later
     be used to create animations.
@@ -233,7 +278,10 @@ def generate_frames(freqs, psds, windows, df, frame_dir):
         ax.ticklabel_format(style='plain', axis='x')
         # Save each frame as an image
         output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}.png")  # Save the frame with a 4-digit number
-        fig.savefig(output_image_path, bbox_inches='tight', dpi=60) 
+        fig.savefig(output_image_path, format="png", bbox_inches='tight', dpi=60) 
+        if frame % 20 ==0:
+            output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}_report.pdf")  # Save the frame with a 4-digit number
+            fig.savefig(output_image_path, format="pdf", bbox_inches='tight', dpi=120)   # Higher quality for the report
 
         plt.close()
 
