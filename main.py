@@ -152,4 +152,4 @@ if __name__ == "__main__":
 
     # Plot with the f resolution as a function of the length of dataset
     fig6, ax6 = plt.subplots(figsize=(13, 10))
-    rsl.plot_df_dt(windows, df, ax5, fig5, output_path=os.path.join(output_dir, "dT_df"), im_format="pdf")
+    rsl.plot_df_dt(windows, df, ax6, fig6, output_path=os.path.join(output_dir, "dT_df"), im_format="pdf")

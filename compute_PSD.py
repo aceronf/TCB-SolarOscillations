@@ -234,7 +234,7 @@ def plot_psd(freq, psd, axis, figure, save_path=None, show=True, im_format="pdf"
 
 
     if save_path is not None:
-        figure.savefig(save_path, format=im_format, bbox_inches='tight')
+        figure.savefig(save_path+"."+im_format, format=im_format, bbox_inches='tight')
     
     if show:
         plt.show() 

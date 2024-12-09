@@ -153,10 +153,16 @@ def plot_resolutions(freq_list, psd_list, windows, axis, figure, freq_lims=(1e-2
     plot_psd(freq_list[0], psd_list[0], axis, figure, show=False, freq_lims=freq_lims, linewidth=linewidth,
              color="black", alpha=1, label=rf"$\Delta T = {min_window.value}$ days", axis_log=axis_log, psd_lims=psd_lims)
 
-    axis.legend(fontsize=24, loc="best", frameon=False)
+    legend = axis.legend(fontsize=24, loc="best", frameon=False)
+
+    # Adjust the line width in the legend
+    for line in legend.get_lines():
+        line.set_linewidth(4) 
 
     if output_path is not None:
         figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight')
+    
+    plt.close()
 
 ################################################################################################################
 ################################################################################################################
@@ -187,22 +193,34 @@ def plot_df_dt(windows, delta_freq, axis, figure, output_path=None, im_format="p
     color : str, optional
         Color of the data points inside the plot_, by default "blue".
     """
-
-    axis.plot([w.to(u.day).value for w in windows], 
-              [f.to(u.Hz).value for f in delta_freq], 
-              color=color,
-              marker="o", markersize=15,
-              )
+    # Plot of the data points
+    window_length = [w.to(u.day).value for w in windows]
+    frequency_resolution = [f.to(u.Hz).value for f in delta_freq]
+    axis.scatter(window_length, 
+                frequency_resolution,
+                c=color,
+                marker="o", s=15,
+                label="PSD frequency resolution"
+                )
+    
+    # Plot 1/Delta T
+    ww = np.linspace(0.9*min(window_length), 1.1*max(window_length), 1000)*u.day
+    theoretical_df = 1/ww.to(u.s)
+    axis.plot(ww, theoretical_df, c=color, alpha=0.6, linewidth=2, label=r"$1 / \Delta T$")
 
     axis.set_xlabel(r'$\Delta T$ [day]', fontsize=30)
     axis.set_ylabel(r'$\Delta f$ [$\unit{\hertz}$]', fontsize=30)
 
     axis.set_yscale("log")
 
+    axis.legend(fontsize=24, loc="best", frameon=False)
+
     axis.tick_params(axis='both', which='major', labelsize=24)
     axis.yaxis.get_offset_text().set_fontsize(20)  # Adjust as needed
     if output_path is not None:
         figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight')
+
+    plt.close()
 
 ################################################################################################################
 ################################################################################################################

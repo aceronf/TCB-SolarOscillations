@@ -329,7 +329,7 @@ def generate_frames_evolution(freqs, psds, time, intensity, grid, frame_step, fr
         fig.savefig(output_image_path, bbox_inches='tight', dpi=60) 
 
         if frame % 100 == 0:
-            output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}_report.png") 
+            output_image_path = os.path.join(os.path.dirname(frame_dir), f"evolution_frame_{frame:04d}_report.png") 
             fig.savefig(output_image_path, bbox_inches='tight', dpi=120) # Higher quality for the report
 
         cmapline.remove()
