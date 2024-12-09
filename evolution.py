@@ -13,8 +13,12 @@ cds.enable()
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib.gridspec import GridSpec
 
-from compute_PSD import compute_PSD
+import os 
+import shutil
+
+from compute_PSD import compute_PSD, plot_psd
 
 ############################ LaTeX rendering ##############################
 plt.rc('text', usetex=True)
@@ -42,7 +46,7 @@ plt.rcParams.update({
 
 ################################################################################################################
 ################################################################################################################
-def subsample_dataset(t_values, intensities, window_size):
+def subsample_dataset_constant(t_values, intensities, window_size):
     """
     Divides the given timeseries into small windows whose length is specified 
     in window_size. In each of them, the PSD os computed with the Lomb - Scargle
@@ -105,7 +109,7 @@ def subsample_dataset(t_values, intensities, window_size):
 ################################################################################################################
 ################################################################################################################
 def generate_colormap(grid, powers_array, axis, figure, save_path=None, show=True, 
-                      im_format="pdf", cbar=True):
+                      im_format="pdf", cbar=True, secondary_axis=False):
     """
     Generates a colormap of the PSD evolution from a grid and a psd 2D array given as 
     parameters.
@@ -149,10 +153,26 @@ def generate_colormap(grid, powers_array, axis, figure, save_path=None, show=Tru
     axis.set_ylabel('Frequency [mHz]', fontsize=30)
     axis.tick_params(axis='both', which='major', labelsize=24)
 
+    if secondary_axis:
+        # Add a secondary x-axis
+        def years_to_date(x):
+            return x + 1996
+
+        def date_to_years(x):
+            return x - 1996
+
+        secondary_axis = axis.secondary_xaxis(
+            'top', functions=(years_to_date, date_to_years)
+        )
+        # secondary_axis.set_xlabel(r'Year', fontsize=30, labelpad=14)
+        secondary_axis.tick_params(axis='x', which='major', labelsize=24) 
+        secondary_ticks = np.arange(int(grid[0][0][0])+1996, int(grid[0][0][-1])+1996,2)
+        secondary_axis.set_ticks(secondary_ticks)
+        
     plt.tight_layout()
 
     if save_path is not None:
-        figure.savefig(save_path, format=im_format, bbox_inches='tight')
+        figure.savefig(save_path+"."+im_format, format=im_format, bbox_inches='tight', dpi=200)
     
     if show:
         plt.show() 
@@ -162,7 +182,7 @@ def generate_colormap(grid, powers_array, axis, figure, save_path=None, show=Tru
 
 ################################################################################################################
 ################################################################################################################
-def plot_timeseries(time, intensity, axis, figure, save_path=None, show=True, im_format="pdf", xlim=None):
+def plot_timeseries(time, intensity, axis, figure, save_path=None, show=True, im_format="pdf", xlim=None, ylims=None):
     """
     Plots a timeeries that is given as parameters.
 
@@ -191,6 +211,9 @@ def plot_timeseries(time, intensity, axis, figure, save_path=None, show=True, im
 
     xlim : astropy quantity, optional
         Maximum time to display in the timeseries. By default None.
+
+    ylims : tuple(astropy quantity), optional
+        Limits to the y axis.
     """
     axis.plot(time.to(u.year).value, intensity.value, color="green", linewidth=0.4)
 
@@ -198,16 +221,124 @@ def plot_timeseries(time, intensity, axis, figure, save_path=None, show=True, im
     axis.set_ylabel(r'Intensity [$\unit{\ppm}$]', fontsize=30)
     axis.tick_params(axis='both', which='major', labelsize=24)
     #axis.set_xlim((4.46*u.s).to(u.year).value, (8.78e8*u.s).to(u.year).value)
-    axis.set_ylim(-1000,1000)
+    #axis.set_ylim(-1000,1000)
+
     if xlim is not None:
         axis.set_xlim(0, xlim.to(u.year).value)
+    
+    if ylims is not None:
+        axis.set_ylim(ylims[0].value, ylims[1].value)
+
+    # Add a secondary x-axis
+    def years_to_date(x):
+        return x + 1996
+
+    def date_to_years(x):
+        return x - 1996
+
+    secondary_axis = axis.secondary_xaxis(
+        'top', functions=(years_to_date, date_to_years)
+    )
+    # secondary_axis.set_xlabel(r'Year', fontsize=30, labelpad=14)
+    secondary_axis.tick_params(axis='x', which='major', labelsize=24) 
+    secondary_ticks = np.arange(int(time[0].to(u.year).value)+1996, int(time[-1].to(u.year).value)+1996,2)
+    secondary_axis.set_ticks(secondary_ticks)
 
     plt.tight_layout()
 
     if save_path is not None:
-        figure.savefig(save_path, format=im_format, bbox_inches='tight')
+        figure.savefig(save_path+"."+im_format, format=im_format, bbox_inches='tight')
     
     if show:
         plt.show() 
     
     plt.close()
+
+################################################################################################################
+################################################################################################################
+def generate_frames_evolution(freqs, psds, time, intensity, grid, frame_step, frame_dir):
+    """
+    Generates a series of frames that will later be used to produce animations, and saves
+    them in a certain directory.
+
+    Parameters
+    ----------
+    freqs : np.array
+        Frequencies at which the PSDs are calculated (astropy quantities).
+
+    psds : np.array
+        2D array with the PSD calculated values in each subsample (astropy quantity).
+
+    time : np.array
+        Time values for the measurements (astropy quantities).
+
+    intensity : np.array
+        Measurements at each time (astropy quantities).
+
+    grid : np.meshgrid
+        Grid of frequency and time values, in mHz and years.
+
+    frame_step : astropy quantity
+        Ellapsed time between two consecutive frames.
+
+    frame_dir : str
+        Directory where the frames will be saved in png format.
+    """
+
+    if os.path.exists(frame_dir):
+        shutil.rmtree(frame_dir)
+    os.makedirs(frame_dir)
+    
+    # The dataset is divided in subsamples of a certain window size:
+    time_step = np.mean(np.diff(time))
+    index_jump = round((frame_step/time_step).to(u.Unit('')).value)
+
+    # Create the figure and subplots
+    # Create the figure and define gridspec
+    fig = plt.figure(figsize=(28, 16))
+    gs = GridSpec(2, 2, width_ratios=[2.5, 1], height_ratios=[1, 3], figure=fig, wspace=0.2)
+    
+    # Colormap subplot (bottom-left)
+    cmap_ax = fig.add_subplot(gs[1, 0])
+    generate_colormap(grid, psds, cmap_ax, fig, show=False, cbar=False, secondary_axis=False)
+    # Timeseries subplot (top-left)
+    tseries_ax = fig.add_subplot(gs[0, 0], sharex=cmap_ax)
+    plot_timeseries(time, intensity, tseries_ax, fig, show=False, xlim=time.max(), ylims=(-1000*cds.ppm, 1000*cds.ppm))
+    
+    # PSD subplot (right, spanning full height)
+    psd_ax = fig.add_subplot(gs[:, 1])
+
+    fig.tight_layout()
+
+    # Function to update the PSD for each frame
+    def update(frame):
+        # Clear the axis
+        psd_ax.clear()
+
+        # Compute the PSD for this window
+        power = psds[frame, :]
+
+        cmapline = tseries_ax.axvline(x=time[index_jump*frame].to(u.year).value, color='black', linestyle='--', linewidth=3)
+        tseriesline = cmap_ax.axvline(x=time[index_jump*frame].to(u.year).value, color='black', linestyle='--', linewidth=3)
+        
+        # Plot the updated PSD
+        plot_psd(freqs, power, axis=psd_ax, figure=fig, show=False, invert_axis=True)
+        
+        # Save each frame as an image
+        output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}.png")  # Save the frame with a 4-digit number
+        fig.savefig(output_image_path, bbox_inches='tight', dpi=60) 
+
+        if frame % 100 == 0:
+            output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}_report.png") 
+            fig.savefig(output_image_path, bbox_inches='tight', dpi=120) # Higher quality for the report
+
+        cmapline.remove()
+        tseriesline.remove()
+
+        fig.tight_layout()
+
+        plt.close()
+
+    num_frames = len(psds)    
+    for frame in range(num_frames):
+        update(frame) 
