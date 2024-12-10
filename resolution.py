@@ -160,7 +160,7 @@ def plot_resolutions(freq_list, psd_list, windows, axis, figure, freq_lims=(1e-2
         line.set_linewidth(4) 
 
     if output_path is not None:
-        figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight')
+        figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight', dpi=300)
     
     plt.close()
 
@@ -218,7 +218,7 @@ def plot_df_dt(windows, delta_freq, axis, figure, output_path=None, im_format="p
     axis.tick_params(axis='both', which='major', labelsize=24)
     axis.yaxis.get_offset_text().set_fontsize(20)  # Adjust as needed
     if output_path is not None:
-        figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight')
+        figure.savefig(output_path+"."+im_format, format=im_format, bbox_inches='tight', dpi=300)
 
     plt.close()
 
@@ -296,10 +296,10 @@ def generate_frames_resolution(freqs, psds, windows, df, frame_dir):
         ax.ticklabel_format(style='plain', axis='x')
         # Save each frame as an image
         output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}.png")  # Save the frame with a 4-digit number
-        fig.savefig(output_image_path, format="png", bbox_inches='tight', dpi=60) 
+        fig.savefig(output_image_path, format="png", bbox_inches='tight', dpi=100) 
         if frame % 20 ==0:
             output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}_report.pdf")  # Save the frame with a 4-digit number
-            fig.savefig(output_image_path, format="pdf", bbox_inches='tight', dpi=120)   # Higher quality for the report
+            fig.savefig(output_image_path, format="pdf", bbox_inches='tight', dpi=300)   # Higher quality for the report
 
         plt.close()
 

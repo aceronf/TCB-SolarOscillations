@@ -172,7 +172,7 @@ def generate_colormap(grid, powers_array, axis, figure, save_path=None, show=Tru
     plt.tight_layout()
 
     if save_path is not None:
-        figure.savefig(save_path+"."+im_format, format=im_format, bbox_inches='tight', dpi=200)
+        figure.savefig(save_path+"."+im_format, format=im_format, bbox_inches='tight', dpi=300)
     
     if show:
         plt.show() 
@@ -247,7 +247,7 @@ def plot_timeseries(time, intensity, axis, figure, save_path=None, show=True, im
     plt.tight_layout()
 
     if save_path is not None:
-        figure.savefig(save_path+"."+im_format, format=im_format, bbox_inches='tight')
+        figure.savefig(save_path+"."+im_format, format=im_format, bbox_inches='tight', dpi=300)
     
     if show:
         plt.show() 
@@ -326,11 +326,11 @@ def generate_frames_evolution(freqs, psds, time, intensity, grid, frame_step, fr
         
         # Save each frame as an image
         output_image_path = os.path.join(frame_dir, f"frame_{frame:04d}.png")  # Save the frame with a 4-digit number
-        fig.savefig(output_image_path, bbox_inches='tight', dpi=60) 
+        fig.savefig(output_image_path, bbox_inches='tight', dpi=100) 
 
         if frame % 100 == 0:
             output_image_path = os.path.join(os.path.dirname(frame_dir), f"evolution_frame_{frame:04d}_report.png") 
-            fig.savefig(output_image_path, bbox_inches='tight', dpi=120) # Higher quality for the report
+            fig.savefig(output_image_path, bbox_inches='tight', dpi=300) # Higher quality for the report
 
         cmapline.remove()
         tseriesline.remove()

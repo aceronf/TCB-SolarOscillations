@@ -33,6 +33,7 @@ import resolution as rsl
 import evolution as evl
 from video_generation import create_gif, create_video
 from audio_generation import sun_sound
+from comparison import plot_comparison
 
 ############################ LaTeX rendering ##############################
 plt.rc('text', usetex=True)
@@ -61,6 +62,9 @@ plt.rcParams.update({
 ############################ Data files ##############################
 original_file = "virgo_missionlong_nanmeanr+g.dat"
 corrected_file = "virgo_missionlong_nanmeanr+g_fillednans.dat"
+
+sunspot_file = "sunspots.json"
+k_line_file = "kfi43700101t000000.dat"
 
 ############################ Code settings ##############################
 window = 20*u.day # Window for sampling the full dataset 
@@ -97,12 +101,12 @@ if __name__ == "__main__":
 
     # Plot of the full timeseries:
     fig1, ax1 = plt.subplots(figsize=(20, 8))
-    evl.plot_timeseries(time, intensity, ax1, fig1, os.path.join(output_dir,"timeseries"), False, "pdf", time[-1])
+    evl.plot_timeseries(time, intensity, ax1, fig1, os.path.join(output_dir,"timeseries"), False, "png", time[-1])
 
     # A PSD computed with the full dataset is produced:
     total_freq, total_power = compute_PSD(time, intensity, min_freq=1e-3*u.mHz, method="fft")
     fig2, ax2 = plt.subplots(figsize=(15, 8))
-    plot_psd(total_freq, total_power, ax2, fig2, os.path.join(output_dir,"total_psd"), False, "pdf",
+    plot_psd(total_freq, total_power, ax2, fig2, os.path.join(output_dir,"total_psd"), False, "png",
              psd_lims = (1e-4*cds.ppm, 1e6*cds.ppm))
     
     # The full datased is subsampled:
@@ -135,10 +139,10 @@ if __name__ == "__main__":
 
     # Plot each PSD in a small range centered in the p modes and save the frames to frames_resolution
     fig4, ax4 = plt.subplots(figsize=(15, 8))
-    rsl.plot_resolutions(freqs, psds, windows, ax4, fig4, output_path=os.path.join(output_dir, "resolutions_general"), im_format="pdf")
+    rsl.plot_resolutions(freqs, psds, windows, ax4, fig4, output_path=os.path.join(output_dir, "resolutions_general"), im_format="png")
 
     fig5, ax5 = plt.subplots(figsize=(13, 10))
-    rsl.plot_resolutions(freqs, psds, windows, ax5, fig5, output_path=os.path.join(output_dir, "resolutions_modes"), im_format="pdf", 
+    rsl.plot_resolutions(freqs, psds, windows, ax5, fig5, output_path=os.path.join(output_dir, "resolutions_modes"), im_format="png", 
                    freq_lims=(2.5*u.mHz, 3.5*u.mHz), axis_log=False, psd_lims=(0*cds.ppm**2/u.mHz, 0.2e5*cds.ppm**2/u.mHz),
                    linewidth=1.5)
     
@@ -152,4 +156,10 @@ if __name__ == "__main__":
 
     # Plot with the f resolution as a function of the length of dataset
     fig6, ax6 = plt.subplots(figsize=(13, 10))
-    rsl.plot_df_dt(windows, df, ax6, fig6, output_path=os.path.join(output_dir, "dT_df"), im_format="pdf")
+    rsl.plot_df_dt(windows, df, ax6, fig6, output_path=os.path.join(output_dir, "dT_df"), im_format="png")
+
+    ########################################### COMPARISON ##############################################
+    fig7, axes7 = plt.subplots(nrows=2, ncols=1, figsize=(15, 12), gridspec_kw={'hspace': 0.4})
+    plot_comparison(time.to(u.year), intensity, sunspot_file, k_line_file, os.path.join(output_dir,"comparison"),
+                    show=False, im_format="pdf")
+                    
